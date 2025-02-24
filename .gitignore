@@ -17,3 +17,4 @@ dependencies
 # coverage
 lcov-html
 lcov.info
+.DS_Store
