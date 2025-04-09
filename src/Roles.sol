@@ -13,6 +13,11 @@ type Role is uint256;
 
 using Roles for Role global;
 
+/// @title Role-Based Access Control Library
+/// @notice Efficient bitwise role management with type safety
+/// @dev Uses EIP-7201 for namespaced storage pattern
+/// @dev parts inspired by @optimizoor/vectorized's OwnableRoles:
+/// https://github.com/vectorized/solady/blob/main/src/auth/OwnableRoles.sol
 library Roles {
 
     /*//////////////////////////////////////////////////////////////
