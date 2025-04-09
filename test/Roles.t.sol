@@ -14,9 +14,9 @@ contract RolesTest is Test {
     address OTHER = makeAddr("OTHER");
 
     // Test roles
-    Role immutable ADMIN_ROLE = Roles.role(0);
-    Role immutable USER_ROLE = Roles.role(1);
-    Role immutable OTHER_ROLE = Roles.role(2);
+    Role constant ADMIN_ROLE = Roles._ROLE_0;
+    Role constant USER_ROLE = Roles._ROLE_1;
+    Role constant OTHER_ROLE = Roles._ROLE_2;
 
     function setUp() public {
         // Pre-assign some roles for testing
@@ -137,6 +137,84 @@ contract RolesTest is Test {
 
         Roles.remove(user, r);
         assertFalse(Roles.hasRoles(user, r));
+    }
+
+    function test_authAll_Success() public {
+        address target = makeAddr("TARGET");
+
+        // Grant multiple roles
+        Roles.add(target, USER_ROLE);
+        Roles.add(target, OTHER_ROLE);
+
+        Role combinedRole = Roles.combine(USER_ROLE, OTHER_ROLE);
+
+        // Should not revert since target has all required roles
+        Roles.authAll(target, combinedRole);
+    }
+
+    function test_authAll_fail_NotAllowed() public {
+        address target = makeAddr("TARGET");
+
+        // Only grant one of the required roles
+        Roles.add(target, USER_ROLE);
+
+        Role combinedRole = Roles.combine(USER_ROLE, OTHER_ROLE);
+
+        vm.expectRevert(Roles.NotAllowed.selector);
+        this.authAll(target, combinedRole);
+    }
+
+    function authAll(address target, Role role) external view {
+        Roles.authAll(target, role);
+    }
+
+    function test_roleOperations_EdgeCases() public {
+        address target = makeAddr("TARGET");
+
+        // Test removing a role that doesn't exist
+        Roles.remove(target, USER_ROLE);
+        assertFalse(Roles.hasRoles(target, USER_ROLE));
+
+        // Test adding the same role multiple times
+        Roles.add(target, USER_ROLE);
+        Roles.add(target, USER_ROLE);
+        assertTrue(Roles.hasRoles(target, USER_ROLE));
+
+        // Test combining with zero roles
+        Role emptyRole = Role.wrap(0);
+        Role combined = Roles.combine(USER_ROLE, emptyRole);
+        assertEq(Role.unwrap(combined), Role.unwrap(USER_ROLE));
+    }
+
+    function test_storageSlot_Isolation() public {
+        address target1 = makeAddr("TARGET1");
+        address target2 = makeAddr("TARGET2");
+
+        // Add roles to target1
+        Roles.add(target1, USER_ROLE);
+
+        // Verify target2 has no roles
+        assertEq(Roles.getRoles(target2), 0);
+
+        // Verify storage isolation
+        assertTrue(Roles.hasRoles(target1, USER_ROLE));
+        assertFalse(Roles.hasRoles(target2, USER_ROLE));
+    }
+
+    function testFuzz_multipleRoleOperations(address user, uint8 role1Id, uint8 role2Id) public {
+        vm.assume(role1Id != role2Id);
+
+        Role r1 = Roles.role(role1Id);
+        Role r2 = Roles.role(role2Id);
+
+        Roles.add(user, r1);
+        Roles.add(user, r2);
+
+        assertTrue(Roles.hasRoles(user, r1));
+        assertTrue(Roles.hasRoles(user, r2));
+
+        Role combined = Roles.combine(r1, r2);
+        assertTrue(Roles.hasAllRoles(user, combined));
     }
 
 }

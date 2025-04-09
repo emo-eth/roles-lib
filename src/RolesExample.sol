@@ -12,15 +12,20 @@ contract RolesExample {
 
     // Define roles as immutable constants
     // Each role should use a unique ID from 0-255
-    Role public immutable ADMIN = Roles.role(0);
-    Role public immutable MINTER = Roles.role(1);
-    Role public immutable PAUSER = Roles.role(2);
-    Role public immutable UPGRADER = Roles.role(3);
-    Role public immutable TREASURER = Roles.role(4);
+    Role public constant ADMIN = Roles._ROLE_0;
+    Role public constant MINTER = Roles._ROLE_1;
+    Role public constant PAUSER = Roles._ROLE_2;
+    Role public constant UPGRADER = Roles._ROLE_3;
+    Role public constant TREASURER = Roles._ROLE_4;
 
     // Common role combinations can be pre-defined
     Role public immutable ADMIN_OR_MINTER;
     Role public immutable EMERGENCY_ROLES; // Admin + Pauser
+
+    // Events for the example contract
+    event TokensMinted(address indexed to, uint256 amount);
+    event ContractPaused(address indexed by);
+    event FundsManaged(address indexed by, uint256 amount);
 
     /// @dev Sets up role combinations during construction
     constructor() {
@@ -31,10 +36,10 @@ contract RolesExample {
         Roles.add(msg.sender, ADMIN);
     }
 
-    // Events for the example contract
-    event TokensMinted(address indexed to, uint256 amount);
-    event ContractPaused(address indexed by);
-    event FundsManaged(address indexed by, uint256 amount);
+    modifier onlyAdmin() {
+        Roles.authAny(msg.sender, ADMIN);
+        _;
+    }
 
     /**
      * @notice Demonstrates single role check
@@ -83,7 +88,7 @@ contract RolesExample {
      * @param role Role to grant or revoke
      * @param shouldAdd True to add role, false to remove
      */
-    function updateRole(address account, Role role, bool shouldAdd) external {
+    function updateRole(address account, Role role, bool shouldAdd) external onlyAdmin {
         // Check admin privileges
         Roles.authAny(msg.sender, ADMIN);
 
@@ -140,9 +145,9 @@ contract RolesExample {
         bitmap = Roles.getRoles(account);
 
         // Can also check individual roles
-        bool isAdmin = Roles.hasRoles(account, ADMIN);
-        bool isMinter = Roles.hasRoles(account, MINTER);
-        bool hasEmergencyRoles = Roles.hasRoles(account, EMERGENCY_ROLES);
+        // bool isAdmin = Roles.hasRoles(account, ADMIN);
+        // bool isMinter = Roles.hasRoles(account, MINTER);
+        // bool hasEmergencyRoles = Roles.hasRoles(account, EMERGENCY_ROLES);
 
         // Use these bools for additional logic if needed
         return bitmap;
